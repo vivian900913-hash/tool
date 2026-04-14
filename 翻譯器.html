@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>貨運英文翻譯 / 語法優化</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f5f4f0;
+    color: #1a1a18;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2.5rem 1rem;
+  }
+  .wrap { width: 100%; max-width: 680px; }
+  h1 { font-size: 18px; font-weight: 500; margin-bottom: 1.5rem; color: #1a1a18; }
+  .mode-bar { display: flex; gap: 8px; margin-bottom: 1.25rem; }
+  .mode-btn {
+    flex: 1; padding: 9px 0; font-size: 13px; font-weight: 500;
+    border: 0.5px solid #c0bfb8; border-radius: 8px;
+    background: transparent; color: #6b6a65; cursor: pointer; transition: all 0.15s;
+  }
+  .mode-btn.active { background: #fff; color: #1a1a18; border-color: #888780; }
+  textarea {
+    width: 100%; min-height: 140px; font-size: 14px; line-height: 1.65; resize: vertical;
+    border: 0.5px solid #c0bfb8; border-radius: 12px; padding: 12px 14px;
+    background: #fff; color: #1a1a18;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  textarea:focus { outline: none; border-color: #888780; }
+  .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+  .run-btn {
+    flex: 1; padding: 10px; font-size: 14px; font-weight: 500;
+    border: 0.5px solid #c0bfb8; border-radius: 8px;
+    background: #eceae4; color: #1a1a18; cursor: pointer; transition: all 0.15s;
+  }
+  .run-btn:hover { background: #e0ded8; }
+  .run-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .clear-btn {
+    padding: 10px 18px; font-size: 14px; font-weight: 500;
+    border: 0.5px solid #c0bfb8; border-radius: 8px;
+    background: transparent; color: #888780; cursor: pointer; transition: all 0.15s;
+  }
+  .clear-btn:hover { background: #eceae4; color: #1a1a18; }
+  .result-section { margin-top: 1.25rem; }
+  .result-label { font-size: 12px; color: #888780; margin-bottom: 6px; font-weight: 500; letter-spacing: 0.03em; }
+  .result-box {
+    background: #fff; border-radius: 12px; border: 0.5px solid #c0bfb8;
+    padding: 14px 16px; font-size: 14px; line-height: 1.75; color: #1a1a18;
+    min-height: 80px; white-space: pre-wrap;
+  }
+  .copy-btn {
+    margin-top: 8px; font-size: 12px; padding: 5px 14px;
+    border: 0.5px solid #c0bfb8; border-radius: 8px;
+    background: transparent; color: #888780; cursor: pointer; transition: background 0.15s;
+  }
+  .copy-btn:hover { background: #eceae4; }
+  .dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: #888780; margin: 0 2px;
+    animation: blink 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+  .hint { font-size: 12px; color: #aaa9a4; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>貨運英文翻譯 / 語法優化</h1>
+
+  <div class="mode-bar">
+    <button class="mode-btn active" onclick="setMode('translate')" id="btn-translate">中文 → 英文</button>
+    <button class="mode-btn" onclick="setMode('en2zh')" id="btn-en2zh">英文 → 中文</button>
+    <button class="mode-btn" onclick="setMode('refine')" id="btn-refine">英文語法優化</button>
+  </div>
+
+  <textarea id="input" placeholder="在這裡輸入中文…"></textarea>
+  <p class="hint">Ctrl + Enter 快速執行</p>
+  <div class="btn-row">
+    <button class="run-btn" id="run-btn" onclick="run()">翻譯 / 優化</button>
+    <button class="clear-btn" onclick="clearAll()">清除</button>
+  </div>
+
+  <div class="result-section" id="output-area" style="display:none;">
+    <div class="result-label" id="out-label">結果</div>
+    <div class="result-box" id="output"></div>
+    <button class="copy-btn" onclick="copyResult()">複製</button>
+  </div>
+</div>
+
+<script>
+let mode = 'translate';
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-translate').classList.toggle('active', m === 'translate');
+  document.getElementById('btn-en2zh').classList.toggle('active', m === 'en2zh');
+  document.getElementById('btn-refine').classList.toggle('active', m === 'refine');
+  const placeholders = { translate: '在這裡輸入中文…', en2zh: 'Enter English text here…', refine: 'Enter English text here…' };
+  document.getElementById('input').placeholder = placeholders[m];
+  document.getElementById('output-area').style.display = 'none';
+}
+
+async function run() {
+  const text = document.getElementById('input').value.trim();
+  if (!text) return;
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  const out = document.getElementById('output');
+  const area = document.getElementById('output-area');
+  area.style.display = 'block';
+  const labels = { translate: '翻譯結果', en2zh: '翻譯結果', refine: '優化結果' };
+  document.getElementById('out-label').textContent = labels[mode];
+  out.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+
+  const prompts = {
+    translate: `You are a professional English translator specializing in international freight forwarding.
+Translate the Chinese text into concise, natural business English that matches the user's personal writing style exactly.
+
+Style rules:
+- Short, direct sentences. No unnecessary words.
+- Use "for you reference" / "for you check" (not "for your reference")
+- Use "revert" to mean "reply" (e.g. "Please revert", "Looking forward to your soonest revert")
+- Use "by return" to mean "reply promptly" (e.g. "Please confirm by return")
+- Replace "amendment" with "revise" or "change"
+- End emails with "Thank you!" or "Thank you." on its own line
+- List info like ATD/ETA on separate lines without extra words
+- Do not use overly formal or complex vocabulary
+
+Examples of the user's real writing:
+"Attached is SUR MBL for you reference, will provide IV & DN once available. Please confirm by return. Thank you!"
+"All HBL & MBL confirm ok. May I know this shipment departed already? Please update the actual departure date and provide the surrendered HBL/MBL that show correct on board date. Thank you!"
+"Please help to check the volume of this shipment. Due to the final invoice amount & packing list quantity we received from CNEE is different from you provided. Looking forward to your soonest revert."
+"We got carrier's information that vessel schedule will adjust to ETD 01/23 ETA 01/29 due to bad weather and previous port congestion. We will keep tracking this status and update to you if there is any news. Thank you."
+
+Return ONLY the translated English text, nothing else.`,
+    en2zh: `你是一位專業的國際貨運中文翻譯。
+將英文翻譯成自然、口語化的繁體中文，適合在貨運業的日常商業溝通中使用。
+翻譯要簡潔易懂，保留專業術語（如 HBL、MBL、ETD、ETA、CIF、DN、IV 等縮寫不需翻譯）。
+只回傳翻譯結果，不需要任何說明或前言。`,
+    refine: `You are a professional English editor specializing in international freight forwarding communications.
+Polish the English text to match the user's personal writing style exactly.
+
+Style rules:
+- Short, direct sentences. No unnecessary words.
+- Use "for you reference" / "for you check" (not "for your reference")
+- Use "revert" to mean "reply" (e.g. "Please revert", "Looking forward to your soonest revert")
+- Use "by return" to mean "reply promptly" (e.g. "Please confirm by return")
+- Replace "amendment" with "revise" or "change"
+- End emails with "Thank you!" or "Thank you." on its own line
+- List info like ATD/ETA on separate lines without extra words
+- Do not use overly formal or complex vocabulary
+
+Examples of the user's real writing:
+"Attached is SUR MBL for you reference, will provide IV & DN once available. Please confirm by return. Thank you!"
+"All HBL & MBL confirm ok. May I know this shipment departed already? Please update the actual departure date and provide the surrendered HBL/MBL that show correct on board date. Thank you!"
+"Please help to check the volume of this shipment. Due to the final invoice amount & packing list quantity we received from CNEE is different from you provided. Looking forward to your soonest revert."
+"We got carrier's information that vessel schedule will adjust to ETD 01/23 ETA 01/29 due to bad weather and previous port congestion. We will keep tracking this status and update to you if there is any news. Thank you."
+
+Return ONLY the improved English text, nothing else.`
+  };
+  const systemPrompt = prompts[mode];
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: text }]
+      })
+    });
+    const data = await res.json();
+    const result = data.content?.find(b => b.type === 'text')?.text || '發生錯誤，請再試一次。';
+    out.textContent = result;
+  } catch(e) {
+    out.textContent = '發生錯誤，請再試一次。';
+  }
+  btn.disabled = false;
+}
+
+function clearAll() {
+  document.getElementById('input').value = '';
+  document.getElementById('output-area').style.display = 'none';
+  document.getElementById('input').focus();
+}
+
+function copyResult() {
+  const text = document.getElementById('output').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '已複製！';
+    setTimeout(() => btn.textContent = '複製', 1500);
+  });
+}
+
+document.getElementById('input').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
+});
+</script>
+</body>
+</html>
